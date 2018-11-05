@@ -8,12 +8,6 @@ import socket
 import linecache
 from openpyxl import Workbook
 
-locator = 'K40c'
-computation_start_flag = 'cudnn::detail::implicit_convolve_sgemm'
-computation_stop_flag = 'cudnn::detail::wgrad_alg0_engine'
-computation_start_time_list = []
-computation_stop_time_list = []
-
 def get_time_in_ms(str):
     s = str[:-1]
     if s[-1] == 'n':
@@ -34,7 +28,17 @@ def main():
     tracefile = args.file
     xlsxfile = args.xlsxfile
 
+    locator = 'K40c'
+    computation_start_flag = 'cudnn::detail::implicit_convolve_sgemm'
+    computation_start_flag_period = 37
+    computation_start_flag_cnt = 0
+    computation_stop_flag = 'cudnn::detail::wgrad_alg0_engine'
+    computation_stop_flag_period = 30
+    computation_stop_flag_cnt = 0
+    computation_start_time_list = []
+    computation_stop_time_list = []
     line_cur = 2
+
     while 1 :
         line = linecache.getline(tracefile, line_cur) # skip the first line
         if not line:
@@ -44,9 +48,13 @@ def main():
             if locator in line:
                 base_position=line.index(locator)
                 if line[base_position + 5].find(computation_start_flag) != -1:
-                    computation_start_time_list.append(get_time_in_ms(line[0]))
+                    if computation_start_flag_cnt % computation_start_flag_period == 0:
+                        computation_start_time_list.append(get_time_in_ms(line[0]))
+                    computation_start_flag_cnt = computation_start_flag_cnt + 1
                 elif line[base_position + 5].find(computation_stop_flag) != -1:
-                    computation_stop_time_list.append(get_time_in_ms(line[0])+get_time_in_ms(line[1]))
+                    computation_stop_flag_cnt = computation_stop_flag_cnt + 1
+                    if computation_stop_flag_cnt % computation_stop_flag_period == 0:
+                        computation_stop_time_list.append(get_time_in_ms(line[0])+get_time_in_ms(line[1]))
         elif len(line) == 19:  # for CUDA memcpy copy
             pass
                 
