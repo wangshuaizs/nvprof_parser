@@ -56,7 +56,8 @@ def main():
         end = start + get_time_in_ms(line[1])
 
         for i in xrange(int(start*100), int(end*100)):
-            #print(i)
+            if i >= slots:
+                break
             used[i] = 1
 
         line_cur = line_cur + 1
